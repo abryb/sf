@@ -1,4 +1,4 @@
 #!/bin/bash
 sudo -s <<EOF
-cp src/sf /usr/bin/sf
+cp src/sf.sh /usr/local/bin/sf
 EOF
