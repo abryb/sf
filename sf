@@ -1,0 +1,71 @@
+#!/bin/bash
+BIN_DIR=$(find . -maxdepth 1 -type d -name bin)
+if [ ! -d $BIN_DIR ] ; then
+    echo "Please use this script in symfony main directory"
+    exit 1;
+fi
+cd bin/
+CONSOLE=$(find . -maxdepth 1 -type f -name console)
+if [ ! -f $CONSOLE ] ; then
+    echo "Please use this script in symfony main directory where I can run bin/console"
+    exit 1;
+fi
+
+IS_SYMFONY=$(grep -rl "kernel = new AppKernel" console)
+if [ ! -f $IS_SYMFONY ] ; then
+    echo "Please use this script in symfony main directory"
+    exit 1
+fi
+
+case $2 in
+    'prod' )
+        ARGS="--env=prod $3 $4"
+        ;;
+    'dev' )
+        ARGS="--env=dev $3 $4"
+        ;;
+    'test' )
+        ARGS="--env=test $3 $4"
+        ;;
+    *)
+        ARGS="$2 $3 $4"
+        ;;
+esac
+
+declare -A COMANDS
+
+COMANDS=(
+[run]="server:run"
+[start]="server:start"
+[stop]="server:stop"
+[srun]="server:run"
+[sstart]="server:start"
+[sstop]="server:stop"
+[pmd]="propel:migration:generate-diff"
+[pmm]="propel:migration:migrate"
+[pmb]="propel:model:build"
+[pfull]="propel:migration:generate-diff; propel:migration:migrate; propel:model:build"
+[dmd]="doctrine:migrations:diff"
+[dmm]="doctrine:migrations:migrate"
+[dfull]="doctrine:migrations:diff; doctrine:migrations:migrate"
+[cc]="cache:clear"
+[ccp]="cache:clear --env=prod"
+[cct]="cache:clear --env=test"
+[dr]="debug:router"
+[ded]="debug:event-dispatcher"
+)
+for i in "${!COMANDS[@]}"
+do
+    if [ "$1" == '-h' ] || [ "$1" == '--help' ] ; then
+        echo "$i    ${COMANDS[$i]}"
+    elif [ "$i" == "$1" ] ; then
+        IFS=';' read -ra array <<< "${COMANDS[$i]}"
+        for element in "${array[@]}"
+        do
+             printf "./console $element $ARGS"
+            ./console $element $ARGS
+        done
+    fi
+done
+
+exit 0
