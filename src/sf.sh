@@ -78,8 +78,8 @@ do
         do
              printf "bin/console $element $ARGS \n"
             ./bin/console $element $ARGS
-            exit 0
         done
+        exit 0
     fi
 done
 printf "bin/console $1 $ARGS \nS"
