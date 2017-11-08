@@ -29,9 +29,9 @@ COMANDS=(
 ['dsu']="doctrine:schema:update"
 ['ddc']="doctrine:database:create"
 ['dd']="doctrine:database:import"
-['fuc']="fos:user:crete"
-['fucp']="fos:user:crete"
-['fup']="fos:user:crete"
+['fuc']="fos:user:create"
+['fucp']="fos:user:change-password"
+['fup']="fos:user:promote"
 ['tu']="translation:update"
 )
 if [ "$1" == '-h' ] || [ "$1" == '--help' ] ; then
