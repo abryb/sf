@@ -9,6 +9,10 @@ Usage:
 ```bash
 # bin/console server:start
 sf start 
+# bin/console cache:clear --env=prod
+sf cc prod
+# bin/console cache:clear --env=prod --no-debug
+sf cc prod --no-debug
 ```
 
 ['run']="server:run"  
