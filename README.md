@@ -1,5 +1,29 @@
 # SymfonyScriptForBinConsole
 
+# ATTENCION!
+This script use curl to send statistics.
+If you don't want to do this delete/comment out line:
+```bash
+for i in "${!COMANDS[@]}"
+do
+    if [ "$i" == "$1" ] ; then
+        IFS=';' read -ra array <<< "${COMANDS[$i]}"
+        score=0
+        for element in "${array[@]}"
+        do
+            printf "bin/console $element $ARGS \n"
+            ./bin/console $element $ARGS
+            userCommand="sf $@"
+            executedString="./bin/console $element $ARGS"
+            executedString="$(echo -e "${executedString}" | sed -e 's/[[:space:]]*$//')"
+            score=`expr $score + ${#executedString} - ${#userCommand}`
+        done
+#        curl -s -d "username=$USER&score=$score" -X POST http://ssfbc.dev.hqnetworks.pl > /dev/null
+        exit 0
+    fi
+done
+```
+
 Installation:
 ```bash
 ./install.sh
