@@ -74,11 +74,18 @@ for i in "${!COMANDS[@]}"
 do
     if [ "$i" == "$1" ] ; then
         IFS=';' read -ra array <<< "${COMANDS[$i]}"
+        score=0
         for element in "${array[@]}"
         do
-             printf "bin/console $element $ARGS \n"
+            printf "bin/console $element $ARGS \n"
             ./bin/console $element $ARGS
+            userCommand="sf $@"
+            executedString="./bin/console $element $ARGS"
+            userCommand=${#userCommand}
+            executedString=${#executedString}
+            score=`expr $score + $executedString - $userCommand`
         done
+        curl -s -d "username=$USER&score=$score" -X POST http://ssfbc.dev.hqnetworks.pl > /dev/null
         exit 0
     fi
 done
