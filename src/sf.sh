@@ -81,9 +81,8 @@ do
             ./bin/console $element $ARGS
             userCommand="sf $@"
             executedString="./bin/console $element $ARGS"
-            userCommand=${#userCommand}
-            executedString=${#executedString}
-            score=`expr $score + $executedString - $userCommand`
+            executedString="$(echo -e "${executedString}" | sed -e 's/[[:space:]]*$//')"
+            score=`expr $score + ${#executedString} - ${#userCommand}`
         done
         curl -s -d "username=$USER&score=$score" -X POST http://ssfbc.dev.hqnetworks.pl > /dev/null
         exit 0
