@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 declare -A COMANDS
 
 COMANDS=(
@@ -42,37 +42,41 @@ if [ "$1" == '-h' ] || [ "$1" == '--help' ] ; then
     exit 0
 fi
 
-if [ ! -d bin ] ; then
-    echo "Please use this script in symfony main directory where bin directory is located"
-    exit 1;
-fi
-if [ ! -f bin/console ] ; then
-    echo "Please use this script in symfony main directory where I can run bin/console. Yes there is a bin directory but I need console file in it!"
-    exit 1;
-fi
-if grep -Fxq "kernel = new AppKernel" bin/console ; then
-    echo "Please use this script in symfony main directory where I can run bin/console. 'bin/console' it's not Symfony console. Don't try to cheat me!"
-    exit 1;
+while [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "kernel = new AppKernel" bin/console ; do
+    cd ./..
+done
+
+if [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "kernel = new AppKernel" bin/console ; then
+    echo "Please use this script in symfony project" 1>&2
+    exit 1
 fi
 
-case $2 in
+# Save first argument as our short command
+SHORT_COMMAND=$1
+shift
+# Replace any prod/dev/test argument with --env=prod/dev/test
+ARGS="";
+for i in "$@"
+do
+    case $i in
     'prod' )
-        ARGS="--env=prod $3 $4 $5 $6"
+        ARGS="$ARGS --env=prod"
         ;;
     'dev' )
-        ARGS="--env=dev $3 $4 $5 $6"
+        ARGS="$ARGS --env=dev"
         ;;
     'test' )
-        ARGS="--env=test $3 $4 $5 $6"
+        ARGS="$ARGS --env=test"
         ;;
     *)
-        ARGS="$2 $3 $4 $5 $6"
+        ARGS="$ARGS $i"
         ;;
-esac
+    esac
+done
 
 for i in "${!COMANDS[@]}"
 do
-    if [ "$i" == "$1" ] ; then
+    if [ "$i" == "$SHORT_COMMAND" ] ; then
         IFS=';' read -ra array <<< "${COMANDS[$i]}"
         score=0
         for element in "${array[@]}"
@@ -88,6 +92,6 @@ do
         exit 0
     fi
 done
-printf "bin/console $1 $ARGS \nS"
+printf "bin/console $SHORT_COMMAND $ARGS \nS"
 ./bin/console $1 $ARGS
 exit 0
