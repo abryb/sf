@@ -43,22 +43,25 @@ if [ "$1" == '-h' ] || [ "$1" == '--help' ] ; then
 fi
 
 while [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "kernel = new AppKernel" bin/console ; do
+    if [ $PWD == '/' ] ; then
+        break;
+    fi
     cd ./..
 done
-
 if [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "kernel = new AppKernel" bin/console ; then
     echo "Please use this script in symfony project" 1>&2
     exit 1
 fi
-
 # Save first argument as our short command
 SHORT_COMMAND=$1
-shift
 # Replace any prod/dev/test argument with --env=prod/dev/test
 ARGS="";
-for i in "$@"
-do
-    case $i in
+for a in "$@" ;do
+    if [ "$1" == "$a" ] ; then
+        continue
+    fi
+
+    case $a in
     'prod' )
         ARGS="$ARGS --env=prod"
         ;;
@@ -69,7 +72,7 @@ do
         ARGS="$ARGS --env=test"
         ;;
     *)
-        ARGS="$ARGS $i"
+        ARGS="$ARGS $a"
         ;;
     esac
 done
@@ -93,5 +96,5 @@ do
     fi
 done
 printf "bin/console $SHORT_COMMAND $ARGS \nS"
-./bin/console $1 $ARGS
+./bin/console $SHORT_COMMAND $ARGS
 exit 0
