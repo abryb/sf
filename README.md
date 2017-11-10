@@ -37,7 +37,11 @@ sf start
 sf cc prod
 # bin/console cache:clear --env=prod --no-debug
 sf cc prod --no-debug
+# Running your command? No problem:
+sf app:command-do-staff prod
 ```
+You can user sf from any place in symfony project. Lets say you are editing files in vendor/example/example/dir/anotherdir/onemore (for fun). One simple 'sf cc' and job of clearing caches is done. 
+
 ```
 run   = "server:run"  
 start = "server:start"  
