@@ -95,6 +95,6 @@ do
         exit 0
     fi
 done
-printf "bin/console $SHORT_COMMAND $ARGS \nS"
+printf "bin/console $SHORT_COMMAND $ARGS \n"
 ./bin/console $SHORT_COMMAND $ARGS
 exit 0
