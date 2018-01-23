@@ -33,6 +33,7 @@ COMANDS=(
 ['fucp']="fos:user:change-password"
 ['fup']="fos:user:promote"
 ['tu']="translation:update"
+['cgcc']="cache:clear; cache:clear --env=prod; chmod -R 777 var; echo 'Welcome to cogitech group.'"
 )
 if [ "$1" == '-h' ] || [ "$1" == '--help' ] ; then
     for i in "${!COMANDS[@]}"
