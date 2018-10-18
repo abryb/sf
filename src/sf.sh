@@ -43,13 +43,13 @@ if [ "$1" == '-h' ] || [ "$1" == '--help' ] ; then
     exit 0
 fi
 
-while [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "kernel = new AppKernel" bin/console ; do
+while [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "application = new Application" bin/console ; do
     if [ $PWD == '/' ] ; then
         break;
     fi
     cd ./..
 done
-if [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "kernel = new AppKernel" bin/console ; then
+if [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "application = new Application" bin/console ; then
     echo "Please use this script in symfony project" 1>&2
     exit 1
 fi
