@@ -27,5 +27,27 @@ sf my-command
 sf -r my-old-command
 ```
 
+Running multiple commands:
+```console
+foo@bar:~/myProject$ sf -s cc cache:clear
+foo@bar:~/myProject$ sf -s ccw "cc;cache:warmup"
+foo@bar:~/myProject$ sf ccw
+bin/console cache:clear
+
+ // Clearing the cache for the dev environment with debug true                                                          
+
+                                                                                                                        
+ [OK] Cache for the "dev" environment (debug=true) was successfully cleared.                                            
+                                                                                                                        
+
+bin/console cache:warmup
+
+ // Warming up the cache for the dev environment with debug true                                                        
+
+                                                                                                                        
+ [OK] Cache for the "dev" environment (debug=true) was successfully warmed.                                             
+                                                                                                                        
+```
+
 Command are saved in home user directory in file ~/.config/symfonyHelper/commands.sh
 
