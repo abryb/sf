@@ -15,8 +15,10 @@ commands=(
 )
 # save command
 
-user_commands_file_dir="$HOME/.config/symfonyHelper"
-user_commands_file="$user_commands_file_dir/commands.sh"
+commands_file_dir=".config/symfonyHelper/"
+commands_file="$commands_file_dir/commands.sh"
+user_commands_file_dir="$HOME/$commands_file_dir"
+user_commands_file="$HOME/$commands_file"
 if [ ! -f "$user_commands_file" ]; then
   mkdir -p "$user_commands_file_dir"
   declare -p commands >"$user_commands_file"
@@ -33,29 +35,46 @@ Running command: $self <alias> [<args>...] [COMMAND OPTIONS]
 Options:
   -l, --list                   List all aliases commands.
   -s, --set <alias> <command>  Create new alias. E.g '-s do app:do:sth'
+  --send-commands-to <host>    Send local command to host
+  --copy-self-to <host>        Copy $self to host to ~/bin directory
 "
   echo "$__usage"
   exit 0
 fi
 
 if [ "$1" == '-l' ] || [ "$1" == '--list' ]; then
+  echo -e "\nList of commands: "
   for i in "${!commands[@]}"; do
-    printf "    %-10s %-100s\n" "$i" "${commands[$i]}"
-  done | sort -n -k3
+    echo "$i" "${commands[$i]}"
+  done | sort -n -k3 | column -t | sed 's/^/     /'
+  echo ""
   exit 0
 fi
 
-# save custom command to user file
+# save command
 if [ "$1" == '-s' ] || [ "$1" == '--set' ]; then
   commands["$2"]="$3"
   declare -p commands >"$user_commands_file"
   exit 0
 fi
 
-# save custom command to user file
+# remove command
 if [ "$1" == '-r' ] || [ "$1" == '--remove' ]; then
   unset commands["$2"]
   declare -p commands >"$user_commands_file"
+  exit 0
+fi
+
+# send commands to host
+if [ "$1" == '--send-commands-to' ]; then
+  commands_text=$(cat $user_commands_file)
+  ssh "$2" "mkdir -p '$commands_file_dir' && echo '$commands_text' > '$commands_file'"
+  exit 0
+fi
+
+# copy self to host
+if [ "$1" == '--copy-self-to' ]; then
+  scp "$0" "$2:~/bin/$self"
   exit 0
 fi
 
@@ -91,7 +110,7 @@ for tmp; do
   pat='\$([0-9]+)'
   if [[ $tmp =~ $pat ]]; then # $pat must be unquoted
     another_argument="${BASH_REMATCH[1]}"
-    another_argument=$(($another_argument - 1))
+    another_argument=$(( $another_argument - 1))
     tmp="${arguments_copy[another_argument]}"
   fi
 
