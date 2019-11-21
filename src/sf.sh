@@ -1,46 +1,59 @@
 #!/bin/bash
 
-set -e
 declare -A commands
-
 commands=(
-  ['run']="server:run"
   ['start']="server:start"
   ['stop']="server:stop"
-  ['ai']="assets:install"
-  ['ais']="assets:install --symlink"
-  ['ad']="assetic:dump"
   ['cc']="cache:clear"
-  ['cpc']="cache:pool:clear"
-  ['cw']="cache:warmup"
-  ['cdr']="config:dump:reference"
   ['dc']="debug:container"
   ['dr']="debug:router"
   ['ded']="debug:event-dispatcher"
   ['rm']="router:match"
-  ['pmd']="propel:migration:generate-diff"
-  ['pmm']="propel:migration:migrate"
-  ['pmb']="propel:model:build"
-  ['pfl']="propel:fixtures:load"
-  ['pfd']="propel:fixtures:dump"
-  ['pfull']="propel:migration:generate-diff;propel:migration:migrate;propel:model:build"
-  ['dmd']="doctrine:migrations:diff"
-  ['dmm']="doctrine:migrations:migrate"
-  ['dfull']="doctrine:migrations:diff;doctrine:migrations:migrate"
-  ['dsu']="doctrine:schema:update"
-  ['ddc']="doctrine:database:create"
-  ['dd']="doctrine:database:import"
-  ['fuc']="fos:user:create"
-  ['fucp']="fos:user:change-password"
-  ['fup']="fos:user:promote"
-  ['tu']="translation:update"
+  ['ccw']="cache:clear;cache:warmup #Two commands!" # Example of running two commands
 )
+# save command
+
+user_commands_file_dir="$HOME/.config/symfonyHelper"
+user_commands_file="$user_commands_file_dir/commands.sh"
+if [ ! -f "$user_commands_file" ]; then
+  mkdir -p "$user_commands_file_dir"
+  declare -p commands >"$user_commands_file"
+  chmod 700 "$user_commands_file"
+fi
+# shellcheck source=$HOME/.config/symfonyHelper/command.sh
+source "$user_commands_file"
 
 # help
-if [ "$1" == '-h' ] || [ "$1" == '--help' ]; then
+if [ "$1" == '-h' ] || [ "$1" == '--help' ] || [ "$1" == "" ]; then
+  __usage="
+Usage: $(basename $0) [OPTIONS]
+Running command: $(basename $0) <alias> [<args>...] [COMMAND OPTIONS]
+Options:
+  -l, --list                   List all aliases commands.
+  -s, --set <alias> <command>  Create new alias. E.g '-s do app:do:sth'
+"
+  echo "$__usage"
+  exit 0
+fi
+
+if [ "$1" == '-l' ] || [ "$1" == '--list' ]; then
   for i in "${!commands[@]}"; do
     printf "    %-10s %-100s\n" "$i" "${commands[$i]}"
   done | sort -n -k3
+  exit 0
+fi
+
+# save custom command to user file
+if [ "$1" == '-s' ] || [ "$1" == '--set' ]; then
+  commands["$2"]="$3"
+  declare -p commands >"$user_commands_file"
+  exit 0
+fi
+
+# save custom command to user file
+if [ "$1" == '-r' ] || [ "$1" == '--remove' ]; then
+  unset commands["$2"]
+  declare -p commands >"$user_commands_file"
   exit 0
 fi
 
@@ -100,7 +113,6 @@ echoCommand() {
   printf "\n"
 }
 
-
 for i in "${!commands[@]}"; do
   if [ "$i" == "$short_command" ]; then
     IFS=';' read -ra array <<<"${commands[$i]}"
@@ -115,4 +127,3 @@ done
 echoCommand "$short_command" "$@"
 ./bin/console "$short_command" "$@"
 exit 0
-
