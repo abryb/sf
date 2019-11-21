@@ -1,5 +1,7 @@
 #!/bin/bash
 
+self=$(basename $0)
+
 declare -A commands
 commands=(
   ['start']="server:start"
@@ -26,8 +28,8 @@ source "$user_commands_file"
 # help
 if [ "$1" == '-h' ] || [ "$1" == '--help' ] || [ "$1" == "" ]; then
   __usage="
-Usage: $(basename $0) [OPTIONS]
-Running command: $(basename $0) <alias> [<args>...] [COMMAND OPTIONS]
+Usage: $self [OPTIONS]
+Running command: $self <alias> [<args>...] [COMMAND OPTIONS]
 Options:
   -l, --list                   List all aliases commands.
   -s, --set <alias> <command>  Create new alias. E.g '-s do app:do:sth'
@@ -117,8 +119,7 @@ for i in "${!commands[@]}"; do
   if [ "$i" == "$short_command" ]; then
     IFS=';' read -ra array <<<"${commands[$i]}"
     for element in "${array[@]}"; do
-      echoCommand "$element" "$@"
-      ./bin/console "$element" "$@"
+      $self "$element" "$@"
     done
     exit 0
   fi
