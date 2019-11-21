@@ -104,7 +104,6 @@ echoCommand() {
 for i in "${!commands[@]}"; do
   if [ "$i" == "$short_command" ]; then
     IFS=';' read -ra array <<<"${commands[$i]}"
-    echo "fff"
     for element in "${array[@]}"; do
       echoCommand "$element" "$@"
       ./bin/console "$element" "$@"
