@@ -1,12 +1,17 @@
 # SymfonyScriptForBinConsole
 
 Installation:
+
+1. Globally
 ```bash
-./install.sh
+sudo curl 'https://raw.githubusercontent.com/abryb/SymfonyScriptForBinConsole/master/src/sf.sh' -o /usr/local/bin/sf ;and sudo chmod +x /usr/local/bin/sf
 ```
-or 
-```
-cp sf.sh /usr/local/bin/sf
+2. For user
+```bash
+mkdir -p ~/bin && curl 'https://raw.githubusercontent.com/abryb/SymfonyScriptForBinConsole/master/src/sf.sh' -o ~/bin/sf && chmod +x ~/bin/sf
+# If not already in PATH
+echo 'PATH="$PATH:~/bin"' >> ~/.profile
+
 ```
 
 
