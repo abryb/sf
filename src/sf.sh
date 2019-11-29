@@ -3,6 +3,8 @@
 self=$(basename $0)
 
 declare -A commands
+
+# Some initial example commands
 commands=(
   ['start']="server:start"
   ['stop']="server:stop"
@@ -27,9 +29,39 @@ fi
 # shellcheck source=$HOME/.config/symfonyHelper/command.sh
 source "$user_commands_file"
 
-# help
-if [ "$1" == '-h' ] || [ "$1" == '--help' ] || [ "$1" == "" ]; then
-  __usage="
+case $1 in
+-l | --list)
+  echo -e "\nList of commands: "
+  for i in "${!commands[@]}"; do
+    echo "$i" "${commands[$i]}"
+  done | sort -n -k3 | column -t | sed 's/^/     /'
+  echo ""
+  exit 0
+  ;;
+-s | --set | -a | --add)
+  commands["$2"]="$3"
+  declare -p commands >"$user_commands_file"
+  echo "Saved alias '$2' for command '$3'"
+  exit 0
+  ;;
+-r | --remove)
+  command="${commands[$2]}"
+  unset commands["$2"]
+  declare -p commands >"$user_commands_file"
+  echo "Removed alias '$1' for command '$command'"
+  exit 0
+  ;;
+--send-commands-to)
+  commands_text=$(cat $user_commands_file)
+  ssh "$2" "mkdir -p '$commands_file_dir' && echo '$commands_text' > '$commands_file'"
+  exit 0
+  ;;
+--copy-self-to)
+  scp "$0" "$2:~/bin/$self"
+  exit 0
+  ;;
+-h | --help | "")
+    __usage="
 Usage: $self [OPTIONS]
 Running command: $self <alias> [<args>...] [COMMAND OPTIONS]
 Options:
@@ -40,48 +72,15 @@ Options:
 "
   echo "$__usage"
   exit 0
-fi
-
-if [ "$1" == '-l' ] || [ "$1" == '--list' ]; then
-  echo -e "\nList of commands: "
-  for i in "${!commands[@]}"; do
-    echo "$i" "${commands[$i]}"
-  done | sort -n -k3 | column -t | sed 's/^/     /'
-  echo ""
-  exit 0
-fi
-
-# save command
-if [ "$1" == '-s' ] || [ "$1" == '--set' ]; then
-  commands["$2"]="$3"
-  declare -p commands >"$user_commands_file"
-  exit 0
-fi
-
-# remove command
-if [ "$1" == '-r' ] || [ "$1" == '--remove' ]; then
-  unset commands["$2"]
-  declare -p commands >"$user_commands_file"
-  exit 0
-fi
-
-# send commands to host
-if [ "$1" == '--send-commands-to' ]; then
-  commands_text=$(cat $user_commands_file)
-  ssh "$2" "mkdir -p '$commands_file_dir' && echo '$commands_text' > '$commands_file'"
-  exit 0
-fi
-
-# copy self to host
-if [ "$1" == '--copy-self-to' ]; then
-  scp "$0" "$2:~/bin/$self"
-  exit 0
-fi
+  ;;
+*) # unknown option
+  ;;
+esac
 
 # back to first symfony project in current path
-while [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "application = new Application" bin/console; do
+while [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "<?php" bin/console; do
   if [ $PWD == '/' ]; then
-    echo "Please use this script in symfony project" 1>&2
+    echo "Please use this script in php project with bin/console" 1>&2
     exit 1
   fi
   cd ./..
@@ -110,7 +109,7 @@ for tmp; do
   pat='\$([0-9]+)'
   if [[ $tmp =~ $pat ]]; then # $pat must be unquoted
     another_argument="${BASH_REMATCH[1]}"
-    another_argument=$(( $another_argument - 1))
+    another_argument=$(($another_argument - 1))
     tmp="${arguments_copy[another_argument]}"
   fi
 
