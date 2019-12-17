@@ -51,6 +51,11 @@ case $1 in
   echo "Removed alias '$1' for command '$command'"
   exit 0
   ;;
+-c | --check)
+  command="${commands[$2]}"
+  echo "$command"
+  exit 0
+  ;;
 --send-commands-to)
   commands_text=$(cat $user_commands_file)
   ssh "$2" "mkdir -p '$commands_file_dir' && echo '$commands_text' > '$commands_file'"
@@ -67,6 +72,8 @@ Running command: $self <alias> [<args>...] [COMMAND OPTIONS]
 Options:
   -l, --list                   List all aliases commands.
   -s, --set <alias> <command>  Create new alias. E.g '-s do app:do:sth'
+  -r, --remove <alias>         Remove alias.
+  -c, --check <alias>          Check alias command.
   --send-commands-to <host>    Send local command to host
   --copy-self-to <host>        Copy $self to host to ~/bin directory
 "
@@ -117,22 +124,6 @@ for tmp; do
   shift
 done
 
-echoCommand() {
-  printf "bin/console %s" "$1"
-  shift
-  for i in "$@"; do
-    case "$i" in
-    *\ *)
-      printf " '%s'" "$i"
-      ;;
-    *)
-      printf " %s" "$i"
-      ;;
-    esac
-  done
-  printf "\n"
-}
-
 for i in "${!commands[@]}"; do
   if [ "$i" == "$short_command" ]; then
     IFS=';' read -ra array <<<"${commands[$i]}"
@@ -143,6 +134,5 @@ for i in "${!commands[@]}"; do
   fi
 done
 
-echoCommand "$short_command" "$@"
 ./bin/console "$short_command" "$@"
 exit 0
