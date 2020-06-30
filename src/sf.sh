@@ -3,8 +3,6 @@
 self=$(basename $0)
 
 declare -A commands
-
-# Some initial example commands
 commands=(
   ['start']="server:start"
   ['stop']="server:stop"
@@ -29,69 +27,70 @@ fi
 # shellcheck source=$HOME/.config/symfonyHelper/command.sh
 source "$user_commands_file"
 
-case $1 in
--l | --list)
+# help
+if [ "$1" == '-h' ] || [ "$1" == '--help' ] || [ "$1" == "" ]; then
+  __usage="
+Usage: $self [OPTIONS]
+Running command: $self <alias> [<args>...] [COMMAND OPTIONS]
+Options:
+  -l, --list                   List all aliases commands.
+  -s, --set <alias> <command>  Create new alias. E.g '-s do app:do:sth'
+  --send-commands-to <host>    Send local command to host
+  --copy-self-to <host>        Copy $self to host to ~/bin directory
+"
+  echo "$__usage"
+  exit 0
+fi
+
+if [ "$1" == '-l' ] || [ "$1" == '--list' ]; then
   echo -e "\nList of commands: "
   for i in "${!commands[@]}"; do
     echo "$i" "${commands[$i]}"
   done | sort -n -k3 | column -t | sed 's/^/     /'
   echo ""
   exit 0
-  ;;
--s | --set | -a | --add)
+fi
+
+# save command
+if [ "$1" == '-s' ] || [ "$1" == '--set' ]; then
   commands["$2"]="$3"
   declare -p commands >"$user_commands_file"
-  echo "Saved alias '$2' for command '$3'"
   exit 0
-  ;;
--r | --remove)
-  command="${commands[$2]}"
+fi
+
+# remove command
+if [ "$1" == '-r' ] || [ "$1" == '--remove' ]; then
   unset commands["$2"]
   declare -p commands >"$user_commands_file"
-  echo "Removed alias '$1' for command '$command'"
   exit 0
-  ;;
--c | --check)
-  command="${commands[$2]}"
-  echo "$command"
-  exit 0
-  ;;
---send-commands-to)
+fi
+
+# send commands to host
+if [ "$1" == '--send-commands-to' ]; then
   commands_text=$(cat $user_commands_file)
   ssh "$2" "mkdir -p '$commands_file_dir' && echo '$commands_text' > '$commands_file'"
   exit 0
-  ;;
---copy-self-to)
+fi
+
+# copy self to host
+if [ "$1" == '--copy-self-to' ]; then
   scp "$0" "$2:~/bin/$self"
   exit 0
-  ;;
--h | --help | "")
-    __usage="
-Usage: $self [OPTIONS]
-Running command: $self <alias> [<args>...] [COMMAND OPTIONS]
-Options:
-  -l, --list                   List all aliases commands.
-  -s, --set <alias> <command>  Create new alias. E.g '-s do app:do:sth'
-  -r, --remove <alias>         Remove alias.
-  -c, --check <alias>          Check alias command.
-  --send-commands-to <host>    Send local command to host
-  --copy-self-to <host>        Copy $self to host to ~/bin directory
-"
-  echo "$__usage"
-  exit 0
-  ;;
-*) # unknown option
-  ;;
-esac
+fi
 
 # back to first symfony project in current path
-while [ ! -d ./bin ] || [ ! -f ./bin/console ] || ! grep -q "<?php" bin/console; do
+while [ ! -f ./bin/console ] || ( ! grep -q "application = new Application" bin/console && ! grep -q "@sf root" bin/console); do
   if [ $PWD == '/' ]; then
-    echo "Please use this script in php project with bin/console" 1>&2
+    echo "Please use this script in symfony project" 1>&2
     exit 1
   fi
   cd ./..
 done
+
+# If parent directory also has bin/console script with "@sf root" annotation, go there
+if [ ! $PWD == "/" ] && [ -f "./../bin/console" ] && grep -q "@sf root" ./../bin/console; then
+   cd ..
+fi
 
 # Save first argument as our short command
 short_command=$1
@@ -116,13 +115,29 @@ for tmp; do
   pat='\$([0-9]+)'
   if [[ $tmp =~ $pat ]]; then # $pat must be unquoted
     another_argument="${BASH_REMATCH[1]}"
-    another_argument=$(($another_argument - 1))
+    another_argument=$(( $another_argument - 1))
     tmp="${arguments_copy[another_argument]}"
   fi
 
   set -- "$@" "$tmp"
   shift
 done
+
+echoCommand() {
+  printf "bin/console %s" "$1"
+  shift
+  for i in "$@"; do
+    case "$i" in
+    *\ *)
+      printf " '%s'" "$i"
+      ;;
+    *)
+      printf " %s" "$i"
+      ;;
+    esac
+  done
+  printf "\n"
+}
 
 for i in "${!commands[@]}"; do
   if [ "$i" == "$short_command" ]; then
@@ -134,5 +149,6 @@ for i in "${!commands[@]}"; do
   fi
 done
 
+echoCommand "$short_command" "$@"
 ./bin/console "$short_command" "$@"
 exit 0
