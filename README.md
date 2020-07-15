@@ -1,4 +1,4 @@
-# SymfonyScriptForBinConsole
+
 
 Installation:
 ```bash
