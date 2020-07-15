@@ -94,8 +94,13 @@ case $1 in
                 echo "$0 --set-remote-url <url>"
                 exit 2
             fi
-            echo curl -s "$SF_GIT_REMOTE_URL" -o "${BASH_SOURCE[0]}"
-            curl -s "$SF_GIT_REMOTE_URL" -o "${BASH_SOURCE[0]}"
+            # temporary git repository
+            temp_dir=$(mktemp)
+            rm -rf "$temp_dir"
+            git clone "$SF_GIT_REMOTE_URL" "$temp_dir"
+            cat "$temp_dir/sf" > "${BASH_SOURCE[0]}"
+            rm -rf "$temp_dir"
+            echo "sf updated successfully"
             exit 0
     ;;
      --push-to-remote )
@@ -104,7 +109,7 @@ case $1 in
                 echo "$0 --set-remote-url <url>"
                 exit 2
             fi
-            # create temporary repository
+            # temporary git repository
             temp_dir=$(mktemp)
             rm -rf "$temp_dir"
             git clone "$SF_GIT_REMOTE_URL" "$temp_dir"
