@@ -30,6 +30,10 @@ USAGE
 
 declare -A commands
 commands=(
+  ['pfull']="sf pmg; sf pmm; sf pmb"
+  ['pmb']="sf propel:model:build"
+  ['pmg']="sf propel:migration:generate-diff"
+  ['pmm']="sf propel:migration:migrate"
   ['cc']="bin/console cache:clear"
   ['dc']="bin/console debug:container"
   ['dr']="bin/console debug:router"
@@ -161,12 +165,13 @@ for pattern in "${find_patterns[@]}"; do
         cd $(dirname "$file")
         for i in "${!commands[@]}"; do
             if [ "$i" == "$1" ]; then
-                exec bash -c "${commands[$i]} ${@:2}"
+                bash -c "${commands[$i]} ${@:2}"
+                exit 0
             fi
         done
         exec $SF_DEFAULT_COMMAND "$@"
     fi
 done
 
-echo "symfony console file not found" 1>&2
+echo "symfony project not found" 1>&2
 exit 1
