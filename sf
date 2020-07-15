@@ -1,0 +1,167 @@
+#!/bin/bash
+
+# author Błażej Rybarkiewicz www.github.com/abryb
+
+# script config
+SF_GIT_REMOTE_URL=${SF_GIT_REMOTE_URL:-https://github.com/abryb/sf}
+SF_DEFAULT_COMMAND=${SF_DEFAULT_COMMAND:-bin/console}
+
+USAGE=$(cat <<USAGE
+Script locates closest symfony framework php project. Goes into that project directory and executes command.
+Commands may be saved aliases. See --set and --show options.
+Usage:
+    $0 <defined alias> [args ...]
+    $0 <command to be executed with default executable>  (Current default executable: "$SF_DEFAULT_COMMAND")
+    $0 --option [value]
+Options:
+    --set <alias> <command>            sets alias for command with arguments.
+    --remove <alias>                   removes alias
+    --show <alias>                     prints command for alias
+    --set-env <name> <value>           sets default env config value. Available environment variables:
+                                       SF_GIT_REMOTE_URL - url to git remote repository
+                                       SF_DEFAULT_COMMAND - command executed when alias is not defined
+    --printenv                         print current env config variables
+    --pull-from-remote                 pulls docc script from remote git remote url repository
+    --push-to-remote                   pushes changes to git remote url
+    -h, --help                         prints help message
+USAGE
+)
+
+
+declare -A commands
+commands=(
+  ['cc']="bin/console cache:clear"
+  ['dc']="bin/console debug:container"
+  ['dr']="bin/console debug:router"
+  ['ded']="bin/console debug:event-dispatcher"
+  ['rm']="bin/console router:match"
+)
+
+case $1 in
+    --help | -h)
+            echo "$USAGE"
+            exit 0
+    ;;
+    --set )
+            command_to_save=$(echo "$3" | sed  "s#\"#\\\\\\\\\"#g" | sed "s#\\\$#\\\\\\\\\$#g" )
+            if  grep "\['$2']=" "${BASH_SOURCE[0]}" -q ; then
+                sed -i -E "s#(\['$2'])=.*#\1=\"${command_to_save}\"#g" "${BASH_SOURCE[0]}"
+            else
+                sed -i -E "s#(commands=\()#\1\n  \['$2']=\"${command_to_save}\"#g" "${BASH_SOURCE[0]}"
+            fi
+            exit 0
+    ;;
+    --show )
+            for i in "${!commands[@]}"; do
+                if [ "$2" != "" ]; then
+                    if [ "$i" == "$2" ]; then
+                        echo "${commands[$i]}"
+                        exit 0
+                    fi
+                else
+                    echo "${i}" \""${commands[$i]}"\"
+                fi
+            done
+            exit 0
+    ;;
+    --remove )
+            sed -i -E "s#\['$2']=.*#__to_remove__#g" "${BASH_SOURCE[0]}"
+            sed -i -E '/^  __to_remove__/d' "${BASH_SOURCE[0]}"
+            exit 0
+    ;;
+    --printenv )
+            echo "SF_GIT_REMOTE_URL=$SF_GIT_REMOTE_URL"
+            echo "SF_DEFAULT_COMMAND=$SF_DEFAULT_COMMAND"
+            exit 0
+    ;;
+     --set-env )
+            case $2 in
+                SF_GIT_REMOTE_URL | SF_DEFAULT_COMMAND)
+                    sed -i -E "s#^($2=\\$\\{$2:-).*}#\1$3\\}#g" "${BASH_SOURCE[0]}"
+                    $0 --print-env
+                    exit 0
+                ;;
+                * )
+                    echo "'$2' is not valid config key."
+                    exit 4
+                ;;
+            esac
+
+    ;;
+    --pull-from-remote )
+            if [[ "$SF_GIT_REMOTE_URL" == "" ]]; then
+                echo "Remote url is not set, please set remote url first."
+                echo "$0 --set-remote-url <url>"
+                exit 2
+            fi
+            echo curl -s "$SF_GIT_REMOTE_URL" -o "${BASH_SOURCE[0]}"
+            curl -s "$SF_GIT_REMOTE_URL" -o "${BASH_SOURCE[0]}"
+            exit 0
+    ;;
+     --push-to-remote )
+            if [[ "$SF_GIT_REMOTE_URL" == "" ]]; then
+                echo "Remote url is not set, please set remote url first."
+                echo "$0 --set-remote-url <url>"
+                exit 2
+            fi
+            # create temporary repository
+            temp_dir=$(mktemp)
+            rm -rf "$temp_dir"
+            git clone "$SF_GIT_REMOTE_URL" "$temp_dir"
+            cat "${BASH_SOURCE[0]}" > "$temp_dir/sf"
+            git -C "$temp_dir" add sf
+            git -C "$temp_dir" commit -m "Updated sf"
+            git -C "$temp_dir" push origin
+            rm -rf "$temp_dir"
+            echo "Done."
+            exit 0
+    ;;
+esac
+
+find_patterns=(
+".                -maxdepth 1" # in current
+".                -maxdepth 2" # in child
+"./..             -maxdepth 1" # in parent
+"./..             -maxdepth 2" # in parent child
+"./../..          -maxdepth 1" # in parent parent
+".                -maxdepth 3" # in child child
+"./../../..       -maxdepth 1" # in parent parent parent
+"./../..          -maxdepth 2" # in parent parent child
+"./../../../..    -maxdepth 1" # in parent parent parent parent
+"./../../..       -maxdepth 2" # in parent parent parent child
+"./../../../../.. -maxdepth 1" # in parent parent parent parent parent
+)
+
+# path to configuration file
+file=""
+function find_in_pattern() {
+    find_result="$(find $1 -type f -name 'composer.lock' -exec grep -l -E 'symfony/symfony|symfony/framework-bundle' {} \; 2>/dev/null)"
+    find_result_c=$(echo "$find_result" | wc -l)
+
+    if [[ "$find_result_c" -eq "1" ]] && [[ "$find_result" != "" ]]; then
+        file="$find_result"
+        return 0
+    fi
+
+    if [[ "$find_result_c" -gt "1" ]]; then
+        echo "Found more than 1 symfony project."
+        echo "$find_result"
+        exit 1
+    fi
+    return 1
+}
+
+for pattern in "${find_patterns[@]}"; do
+    if find_in_pattern "$pattern" ; then
+        cd $(dirname "$file")
+        for i in "${!commands[@]}"; do
+            if [ "$i" == "$1" ]; then
+                exec bash -c "${commands[$i]} ${@:2}"
+            fi
+        done
+        exec $SF_DEFAULT_COMMAND "$@"
+    fi
+done
+
+echo "symfony console file not found" 1>&2
+exit 1
