@@ -2,31 +2,33 @@
 
 # author Błażej Rybarkiewicz www.github.com/abryb
 
-# script config
-SF_GIT_REMOTE_URL=${SF_GIT_REMOTE_URL:-https://github.com/abryb/sf}
-SF_DEFAULT_COMMAND=${SF_DEFAULT_COMMAND:-bin/console}
-
 USAGE=$(cat <<USAGE
 Script locates closest symfony framework php project. Goes into that project directory and executes command.
-Commands may be saved aliases. See --set and --show options.
+Commands may be saved aliases. See -set and -show options.
 Usage:
-    $0 <defined alias> [args ...]
-    $0 <command to be executed with default executable>  (Current default executable: "$SF_DEFAULT_COMMAND")
-    $0 --option [value]
-Options:
-    --set <alias> <command>            sets alias for command with arguments.
-    --remove <alias>                   removes alias
-    --show <alias>                     prints command for alias
-    --set-env <name> <value>           sets default env config value. Available environment variables:
-                                       SF_GIT_REMOTE_URL - url to git remote repository
-                                       SF_DEFAULT_COMMAND - command executed when alias is not defined
-    --printenv                         print current env config variables
-    --pull-from-remote                 pulls docc script from remote git remote url repository
-    --push-to-remote                   pushes changes to git remote url
-    -h, --help                         prints help message
+    sf .                                prints project root directory
+    sf . <command>  [args...]           executes custom command in project dir. Eg.'sf - pwd'
+    sf <defined alias> [args...]        executes defined alias in project dir.
+    sf [args..]                         executes default executable in project dir.
+    sf -<script command>                special script commands
+Script commands:
+    -help                               prints help message
+    -, -show                            prints saved aliases
+    -show <alias>                       prints alias value
+    -set <alias> <command>              sets alias for command with arguments.
+    -remove <alias>                     removes alias
+    -set-env <name> <value>             sets default env config value. Available environment variables:
+                                        SF_GIT_REMOTE_URL - url to git remote repository
+                                        SF_DEFAULT_COMMAND - command executed when alias is not defined
+    -printenv                           print current env config variables
+    -pull-from-remote                   pulls docc script from remote git remote url repository
+    -push-to-remote                     pushes changes to git remote url
 USAGE
 )
 
+# script config
+SF_GIT_REMOTE_URL=${SF_GIT_REMOTE_URL:-https://github.com/abryb/sf}
+SF_DEFAULT_COMMAND=${SF_DEFAULT_COMMAND:-bin/console}
 
 declare -A commands
 commands=(
@@ -34,19 +36,19 @@ commands=(
   ['pmb']="sf propel:model:build"
   ['pmg']="sf propel:migration:generate-diff"
   ['pmm']="sf propel:migration:migrate"
-  ['cc']="bin/console cache:clear"
-  ['dc']="bin/console debug:container"
-  ['dr']="bin/console debug:router"
-  ['ded']="bin/console debug:event-dispatcher"
-  ['rm']="bin/console router:match"
+  ['cc']="sf cache:clear"
+  ['dc']="sf debug:container"
+  ['dr']="sf debug:router"
+  ['ded']="sf debug:event-dispatcher"
+  ['rm']="sf router:match"
 )
 
 case $1 in
-    --help | -h)
+    -help)
             echo "$USAGE"
             exit 0
     ;;
-    --set )
+    -set )
             command_to_save=$(echo "$3" | sed  "s#\"#\\\\\\\\\"#g" | sed "s#\\\$#\\\\\\\\\$#g" )
             if  grep "\['$2']=" "${BASH_SOURCE[0]}" -q ; then
                 sed -i -E "s#(\['$2'])=.*#\1=\"${command_to_save}\"#g" "${BASH_SOURCE[0]}"
@@ -55,7 +57,7 @@ case $1 in
             fi
             exit 0
     ;;
-    --show )
+    - | -show )
             for i in "${!commands[@]}"; do
                 if [ "$2" != "" ]; then
                     if [ "$i" == "$2" ]; then
@@ -63,22 +65,22 @@ case $1 in
                         exit 0
                     fi
                 else
-                    echo "${i}" \""${commands[$i]}"\"
+                    printf '    %-16s%s\n' "$i" "${commands[$i]}"
                 fi
             done
             exit 0
     ;;
-    --remove )
+    -remove )
             sed -i -E "s#\['$2']=.*#__to_remove__#g" "${BASH_SOURCE[0]}"
             sed -i -E '/^  __to_remove__/d' "${BASH_SOURCE[0]}"
             exit 0
     ;;
-    --printenv )
+    -printenv )
             echo "SF_GIT_REMOTE_URL=$SF_GIT_REMOTE_URL"
             echo "SF_DEFAULT_COMMAND=$SF_DEFAULT_COMMAND"
             exit 0
     ;;
-     --set-env )
+    -set-env )
             case $2 in
                 SF_GIT_REMOTE_URL | SF_DEFAULT_COMMAND)
                     sed -i -E "s#^($2=\\$\\{$2:-).*}#\1$3\\}#g" "${BASH_SOURCE[0]}"
@@ -92,7 +94,7 @@ case $1 in
             esac
 
     ;;
-    --pull-from-remote )
+    -pull-from-remote )
             if [[ "$SF_GIT_REMOTE_URL" == "" ]]; then
                 echo "Remote url is not set, please set remote url first."
                 echo "$0 --set-remote-url <url>"
@@ -107,7 +109,7 @@ case $1 in
             echo "sf updated successfully"
             exit 0
     ;;
-     --push-to-remote )
+    -push-to-remote )
             if [[ "$SF_GIT_REMOTE_URL" == "" ]]; then
                 echo "Remote url is not set, please set remote url first."
                 echo "$0 --set-remote-url <url>"
@@ -163,13 +165,29 @@ function find_in_pattern() {
 for pattern in "${find_patterns[@]}"; do
     if find_in_pattern "$pattern" ; then
         cd $(dirname "$file")
-        for i in "${!commands[@]}"; do
-            if [ "$i" == "$1" ]; then
-                bash -c "${commands[$i]} ${@:2}"
+        case "$1" in
+            . )
+                if [ "$2" == "" ] ; then
+                    exec pwd
+                else
+                    exec "${@:2}"
+                fi
+            ;;
+            -h | --help )
+                "$SF_DEFAULT_COMMAND" "$@"
+                echo "    Brought to you by sf script. For help try 'sf -help'"
                 exit 0
-            fi
-        done
-        exec $SF_DEFAULT_COMMAND "$@"
+            ;;
+            * )
+                for i in "${!commands[@]}"; do
+                    if [ "$i" == "$1" ]; then
+                        bash -c "${commands[$i]} ${@:2}"
+                        exit 0
+                    fi
+                done
+                exec $SF_DEFAULT_COMMAND "$@"
+            ;;
+        esac
     fi
 done
 
